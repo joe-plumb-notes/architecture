@@ -1,5 +1,5 @@
 # Pillars of a great Azure Architecture
-Notes and additional thoughts from reading the (Azure Architecture Fundamentals)[https://docs.microsoft.com/en-us/learn/modules/pillars-of-a-great-azure-architecture/]
+Notes and additional thoughts from reading the [Azure Architecture Fundamentals](https://docs.microsoft.com/en-us/learn/modules/pillars-of-a-great-azure-architecture/)
 
 ## Intro
 The role of the architect is to deliver business value through the functional requirements of the application, and ensure the solution is designed in ways that are *scalable, resilient, efficient, and secure*. Solution architecture covers the design, build, and run phases of a technology system. The architecture must _balance_ and _align_ the business requirements with the technical capabilities needed to execute those requirements, by including and evaluation of risk, cost, and capability throughout the system and its components.
