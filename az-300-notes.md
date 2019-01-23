@@ -162,5 +162,94 @@ My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70
 - Idle timeout (keep-alive settings)
 - can map your custom domain into the public IP using your domain name register, or Azure DNS system
 
-## Routing traffic
+### Routing traffic
 - Routes or route table - list of IP address ranges, telling Azure how to send traffic that is coming over your network. 
+- Assign to resource group (ofc)
+- Can configure rules here to direct traffic from address profiles to hop addresses (virtual appliances, vnets, vnet gateways, or the internet)
+- Also need to associate the rule with a subnet.
+
+## Azure Active Directory
+Offload account management to Azure AD, and integrate into your apps using the SDK.
+- Free tier, 10 apps per user.
+- Basic features: reporting, self service password reset, company branding, SLAs. 
+- Premium features: self service password reset sync to on premises, MFA, conditional access (e.g. using an unknown device or from another geo, trigger MFA)
+- Very simple to create - name for the service, and a domain name. 
+- USers, Groups, and Roles. Can then assign access to enterprise apps via these dimensions
+- Custom domain required if you don't want to use the `<aad-resource-name>.onmicrosoft.com` url. Head to Custom domain names in the settings. Prove you own it by adding a txt record into the domain registrar
+- P2 account gets you to all the advanced features.
+- _Identity Protection_ on your account is a series of ML algorithms that will analyse users logins and assess for vulnerabilities. Uses AI to flag suspicious login attempts, and improves your security by bringing this to your attention. Can also set policies to require MFA/password reset under certain risky conditions. 
+- Users, risk events, and vulnerabilities are all investigated in this tool. 
+- Configuration is where you set the params for what is considered a risky user or risky signin. Can include or exclude teams from the policies, this is a corporate decision. _Conditions_ is where the ML kicks in - set a risk level. Users can be given risk categories too - e.g. users that have not used their account in 12 months. Can force them to change password. 
+- Best practices article available on azure docs
+
+### Self service password reset
+- Requires premium
+- Can turn on for all or select groups of users
+- Authentication methods defines the number of auth methods required to reset (MFA), and the methods that are available e.g. SMS code, mobile app code/notificiation, security questions
+- Then require users to provide this data - set a time for users to have to confirm (e.g. once every 180 days)
+
+### Conditional Access
+- One of the options under security 
+- Set conditions for MFA for user groups and roles
+
+### Access Reviews
+- Need p2 account or EMS (Enterprise Mobility and Security)
+- Access group runs group by group or application by application, and review all members who can access, and provide approval or denial for users.
+- Reviewers can be group owners, selected users, or members (i.e. self approval)
+
+### Hybrid Identity Management
+- On premises identity provider that integrates with Azure AD
+- Sync enables you to extend already existing password and user model on premises with AAD. Means that your registered users on premises can use their auth for cloud services, and changes are propoaged from either end automatically.
+- Federation - letting another system handle the user ids and authentication, and define a trust pattern between AAD and another authentication source.
+- Seamless single sign on enables people who are signed into a domain's keys to be sync'd, so if we trust that (e.g. windows signon), then they don't have to enter user and password for AAD.
+- There's also _pass-through_ auth - I didn't quite understand this
+- [Comprehensive write up on considerations and method to design and adopt hybrid identity strategy](https://docs.microsoft.com/en-us/azure/active-directory/hybrid/plan-hybrid-identity-design-considerations-overview)
+
+## Migrating Servers to Azure
+### Azure Site Recovery
+- _Recovery Services vaults_ is the service to look at here - this is a DR (Disaster Recovery) tool. If you've a set of VMs running on prem, in Azure, or elsewhere, you can use Site Recovery to have a replicated version of your app, multiple VMs, and your data ready to go, in case a disaster happens. 
+- If your app were to go down on prem, you can initiate a failover which would deploy your app into a region in Azure, boot it up, and be ready. _This is a manual fail over_, but if it's looking like you're going to breach SLA or giving up hope of a quick fix, this could provide a solution. 
+- This can also be used for migration - replicating on-premises VMs and then triggering the failover would deploy the app to Azure, which you could then use as your primary instance of the application moving forwards. 
+- For DR scenarios you want the vault to exist in a different data center (obviously!), else if that DC with your application in it goes down, then you lose the valut as well.
+
+### Preparing an ASR site
+- This can be used for backups, storing VMs in the protected items area. SQL in Azure VM, Azure Storage, and Azure VMs currently supported (among others)
+- Replication is another destination for migration. Can do this from On Premises - need to configure the environment and register it with the Recovery Services vault. 
+- Have to download softare and install in environment, supports Hyper-V and VMWare vSphere Hypervisor, as well as non-virtualised machines. There is a tool for deployment planning to understand the cost of the migration. 
+- VMWare also has vCenter converter, a tool which allows you to export VMs that run in VMware into MS VM formats. 
+
+## Serverless computing
+- VMs obviously leave you responsible for keeping environment secure, that patches are in place for your software, etc 
+- Web Apps and Function apps PaaS services (all app services, plus a type of function app) are available, removing chunk of responsibility from you/your org/team. 
+- No effective difference between web app, API and a mobile app. Web apps here allow you to upload your code and have it run in Azure. 
+- K8s - can have a managed cluster or manage it yourself. Container instances are the quickest way to get containers up and running. 
+
+### Functions
+- Functions count as serverless if you configure them this way. Also LogicApps and service fabric. 
+	- Deploying Function app, you get to choose the hosting plan. If you choose consumption, this is true serverless. App Service hosting is PaaS. 
+	- You can sign your own custom domain and have a function app respond to this
+	- Pricing is very cheap - 400,000 GB-s execution time and 1 million executions for free - so great for pieces of code that are not run frequently as you end up staying on the free tier.
+	- Windows or Linux - a Linux Function app allows you to deploy a container as your function.
+- Functions need a storage account, for the code, logs, etc.
+- Portal interface to author, and lots of predefined templates (HTTP trigger, Timers, Azure Queue Storage Trigger, Blob Storage Trigger (whenever a new file gets added to storage, log it in a database for example), IoT Hub)
+- Can also integrate a function with other services, e.g. Excel table, CosmosDB, OneDrive, Blob, Table Storage, 
+
+### Logic Apps
+- More like workflows that can time pieces of code together to take a number of functions, chain them together using logic app. They also integrate with many other services and external services.
+- Don't require a URL, just needs a unique name within the RG
+- Common triggers - events that cause this logic app to run, including time, service bus queue messages, twitter, dropbox, etc (quite cool!)
+- There are also boilerplate logic apps.
+- Overall, pretty simple GUI driven development enabling non-technical users to string together logic and automate annoying bits of their job.
+
+## Event Grid
+- Event driven serverless application that lists for any one event, and passes that on to a number of listneres or handlers. Glue between events that happen, and applications that can handle those kinds of events. 
+- [Overview](https://docs.microsoft.com/en-us/azure/event-grid/overview)
+- You can achieve similar things with Funtions and Logic apps .. but you might want to connect blob to a queue with no logic or function app in between. This is where Event grid comes in.
+- _Resource providers under Subscriptions > Subscription ID  allows you to view what resources you are able to provision._
+- _Is event grid Kafka?_
+- Different event types that can be subscribed to based on the resource you select.
+
+### Service Bus
+- MaaS (Messaging as a Service). Most popular is the Service Bus queue. Can relay message back behind the firewall on prem via this. 
+- Designing apps based on messaging allows you to decouple your app layers. Introduces complexity but increases flexibility.
+- Basic, standard, and premium messaging plans. Can create queues and topics, define the amount of time a message has to live, enable dead-lettering, partitioning, duplicate detection. You get a public URL which can be used to pass messages to the bus from apps etc.
