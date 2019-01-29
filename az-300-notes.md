@@ -174,7 +174,7 @@ Offload account management to Azure AD, and integrate into your apps using the S
 - Basic features: reporting, self service password reset, company branding, SLAs. 
 - Premium features: self service password reset sync to on premises, MFA, conditional access (e.g. using an unknown device or from another geo, trigger MFA)
 - Very simple to create - name for the service, and a domain name. 
-- USers, Groups, and Roles. Can then assign access to enterprise apps via these dimensions
+- Users, Groups, and Roles. Can then assign access to enterprise apps via these dimensions
 - Custom domain required if you don't want to use the `<aad-resource-name>.onmicrosoft.com` url. Head to Custom domain names in the settings. Prove you own it by adding a txt record into the domain registrar
 - P2 account gets you to all the advanced features.
 - _Identity Protection_ on your account is a series of ML algorithms that will analyse users logins and assess for vulnerabilities. Uses AI to flag suspicious login attempts, and improves your security by bringing this to your attention. Can also set policies to require MFA/password reset under certain risky conditions. 
