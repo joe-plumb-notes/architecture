@@ -51,7 +51,7 @@ My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70
 - Network interface has dependancies (3), VM has a dependacy on the network interface. 
 - Also get the schedule you define codified here, e.g. autoShutDownTime
 - You can capture the desired state of your environment in an ARM template and deploy as frequently as you wish - if you are deploying an already-existing resource, Azure will check that the configuration that you pushed is the same as what already exists without changing or impacting it. You can update an existing resource with changes using this method too. More details: https://docs.microsoft.com/en-us/azure/architecture/building-blocks/extending-templates/update-resource
-- Can use ARM templates to deploy Linux VMs too (of course), e.g. in proeprties of `template.json`
+- Can use ARM templates to deploy Linux VMs too (of course), e.g. in properties of `template.json`
 ```
 "imageReference": {
 	"publisher": "RedHat",
@@ -74,7 +74,7 @@ My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70
 - Templates are then stored in 'Templates' on Azure GUI.
 - Can also create powershell scripts to do the above. 
 ### Alerts, Metrics, and Action Groups
-- *Alerts* and aler rules allow you to configure rules for alerting when something happens within a resource group. 
+- *Alerts* and alert rules allow you to configure rules for alerting when something happens within a resource group. 
 - Something to happen > Action Group
 - Pretty simple.
 - *Metrics* are really for on the fly analytics of log data, unless to pin somewhere. 
@@ -253,3 +253,148 @@ Offload account management to Azure AD, and integrate into your apps using the S
 - MaaS (Messaging as a Service). Most popular is the Service Bus queue. Can relay message back behind the firewall on prem via this. 
 - Designing apps based on messaging allows you to decouple your app layers. Introduces complexity but increases flexibility.
 - Basic, standard, and premium messaging plans. Can create queues and topics, define the amount of time a message has to live, enable dead-lettering, partitioning, duplicate detection. You get a public URL which can be used to pass messages to the bus from apps etc.
+
+## Load balancing
+- Two kinds of load balancer _Load Balancer_ service which is a level 4 service, and _Application Gateway_ which is a level 7 service. More info on levels here: https://blogs.msdn.microsoft.com/premier_developer/2018/04/25/azure-load-balancing-solutions-a-guide-to-help-you-choose-the-correct-option/
+- Load balancing is the concept where you have traffic coming from a.n.other source (internet, another application in your Azure stack, etc). The traffic is trying to reach one server, but instead of having one server do all the work, you've decided to distribute the workload across multiple servers doing the same job. Load balancer distributes the traffic, to ensure one server doesn't get overwhelmed with all the traffic.
+	- Level 4 load balancer makes determintations based on 5 factors: source IP, port, destination IP, port, and protocol. Based on these factors, it can determine which back-end pool to send traffic to, using an algorithm to distribute. Not a lot of intelligence applied here, can be round robin (other ways of handling too)
+	- Level 7 load balancing does so at the applicaion/presentation/session layer. This additional context information can be used to make more complex and informed load balancing decisions, e.g. unique client sessions can be identified based on the session cookie and used to deliver all a clients requests to the same server. Server persistance using cookies can be based on the servers cookie, or active cookie injection where a load balancer cookie is inserted into the connection. [source](https://freeloadbalancer.com/load-balancing-layer-4-and-layer-7/)
+- Can also detect if something goes wrong with one of the servers, and drop it out of the rotation/worker pool. 
+- Choices when provisioning in Azure:
+	- _Type_: Internal or Public - Public means that it will also create and have a public IP assigned, so it is accessible from public web. Can choose to use an existing public IP too. Ok with a dynamic IP address if you're going to use the domain name to reference it.
+		- Can also choose IPv6 - load balancer is one of the few devices that supports this at the moment. So, if you have an application that needs to work over IPv6, you can use a load balancer as a proxy to other underlying services, and the load balancer will address translate from the v6 address to the private IP of the machines/services behind in your subscription.
+- When would you use a Standard load balancer?
+	- Basic supports up to 100 instances behind the scenes. Standard supports 1000.
+	- Basic supports VMs in a single availability set or scale set. Standard load balancer can support any VM in a single vnet, including a blend of VMs, availability sets, scale sets
+	- Basic does not support HTTPS
+	- Standard has additional stay-alive options (they stay alive on instance probe down _and_ all probes down)
+	- Standard supports availability zones, Azure Monitor (Basic only supports Azure Log Analytics)
+	- Standard are secure by default, requires IP whitelisting (Basic are open by default, and network security groups are optional)
+	- Basic is free, Standard is charged by number of rules, data processes (in and outbound associated with resource)
+
+### Load balancer settings
+- _Backend pools_ - where traffic gets sent. When adding, you have to choose what you want to add to the pool. On the basic plan, you can only choose one "associated to" type. 
+	- The availability set you want to add to the backend pool must exist within the same region as your load balancer. 
+	- Then add VMs into the availability set, and their associated NICs (Network Interface Card)
+- _Health probes_ determine health of servers in the backend pool. E.g. if a server is not responding within a certain time frame, it will kick that from the VM pool. Can set up to ping a port on a VM via TCP, or ping a port and path via HTTP. Set interval and unhealthy threshold. Can set a `health.htm` or `probe.htm` so not having to pull home page (potentially heavy) every time. Of course, a HTML page could continue working while the home page is down, so there is some strategy here.
+- _Load Balancing Rules_ - define the front end IP address, he port you are accepting traffic on and the port you are sending traffic from. Can do Network Address Translation (NAT), where you send on a different port than you recieve. 
+	- You select if you support session persistence too (Client IP, Client IP and Protocol), and idle timeout for this. If you dont set, each piece of incoming traffic will go to a random VM in the pool. 
+
+- _Configuring front end IP_ - there are going to be occasions where you have more that one application/endpoint running on your server farm, so you need to have separate IP addresses to call. To do this:
+	- add a new IP to the load balancer
+	- add a new load balancing rule, probably with a new health probe to check this service too. 
+
+## Setting up an Application Gateway
+- A more sophisticated and intelligent device than a load balancer. 
+- More sophisticated pricing - Standard, Standard V2 (just like load balancing, provides load balancing features) WAF, WAF V2 (Web Application Firewall, more sophisticated again)
+- Manual vs Autoscaling , so your gateways can grow based on demand. 
+- Application gateway also uses availability zones: way of distributing multiple devices (application gateways in this case), and you can select the zones. _NB: note every region has availability zone support_. If HA is your goal, you will have to deploy multiple, and select which zones they go into.
+- Then, need to choose which vnet your app gateway gets deployed onto. Choose the address space and subnet range. 
+- Same distinction between public and internal load balancing.
+
+### Configuration
+- Now have a default backend pool - can target IP addresses or FQDN (fully qualified domain names) as your backend pool - meaning servers that you are directing to can be hosted elsewhere. Can also point to VMs, or App Services (would normally have their own load balancer built in, but if you had multiple instances of app services, you could route traffic using the app gateway).
+- Don't select the availability set, just the individual VMs. 
+- App Gateway needs to have a listener open, and a rule associated that defines where the traffic is routed. `Basic` is for all traffic, or `Path Based` will allow you to create rules that passes traffic for different endpoints to different backend pools.
+
+## MFA and Role Based Access Control
+2 types of MFA servers, downloading the server software and running this in your environment, or cloud based MFA.
+### Turning on MFA
+- Available as an add-on using AAD, $1.40/mo/user, _unless_ you're a premium AAD user.
+- Users > Multi-Factor Authentication (opens in a new tab)
+- Need to be in your AD domain to enable MFA - can't be gmail, for example.
+- Users need to register for MFA @ https://aka.ms/MFASetup
+### Conditonal Access
+- Within security settings on the AAD service, you can find the baseline policy - require MFA for high level roles (e.g. Admins). Can set to enable in the future (so people have chance to set it up), or deploy rule immediately. 
+- Can create new rules to define when MFA will kick in, e.g. if logging in from a location that is not trusted.
+- Sign in risk is an ML algorithm that identifies how typical the sign in is. 
+- Named Locations can be added as a trusted location (IP range)
+### Fraud alerts
+- MFA (under security) settings. Enabling fraud alerts allow users to report if they recieve a 2-step verification address and block that account, i.e. that users login had been compromised. 
+- Blocked accounts go under block/unblocked user list, which takes 90 days to go unblocked. 
+### MFA one-time bypass
+- e.g. if a users phone is out of battery, so they cannot verify the 3rd factor.
+- In the same settings area, you can set up one-time bypass with a time limitto enable someone to log in. 
+### Verifying your Identity
+- In service settings, you have verification options - phone call, text message to phone, notification to mobile app, verifiation code from mobile app or hardware token. 
+- Can also enable trusted IPs where MFA is skipped for requests coming from users on (for example) your own network. 
+### Role Based Access Control (RBAC)
+- Authentication as a service is the remit of what we've just looked at. But.. once that user is authenticted, what can they do? What do they have access to? What is their authorization level?
+- We can do this in resource groups - all resources and resource groups have Access Controls (IAM). Here, can control who can access the resources, make modifications, add new resources (to a RG) or new users who could then access.
+- Handy 'check access' thing to put in a users creds and see hat they can see. If you want to change that users access, go to 'add a role assignment'. Decide what role you want to give - top 3 are 'owner' (keys to the castle! grant access to other users), 'contributor' (full permissions, create, delete and edit resources, but cannot give other users that permission), and 'reader' (read only, can see, can't make changes).
+- Lots of other pre-defined contributor and reader roles for different services, so you can give very fine graind permissions to individuals. 
+- Can also author 'deny' rules to definitely make sure a user/group/role cannot accidently through some other way inherit access.
+- _Custom RBAC roles_ are created at the subscription permissions level, using powershell. Take an existing role, save it as a JSON file, and then edit this file to allow/deny as you require. 
+
+## App services
+- An 'in-between' service for running applications. VMs you control the environment completely, Logic apps and function apps you just upload your codeand Azure is entirely responsible for the execution.
+- App Services is the PaaS service to create code, package it up, and deploy this to az.
+- Create a web app - must have a name, unique across all of azure. 
+- Can choose Linux or Windows web app, either can run containers or uploaded code. Windows apps can push logs into application insights. Linux, you can choose the runtime stack (.net, PHP, Node, Python, Ruby). You choose the app service plan, like a hosting plan. There is a free tier, choose where it goes, and then service plan (Dev/Prod/Isolated)
+- Prod includes load balancing, auto scaling, backups, more compute, disk space, etc.
+- Scale up and scale down can be done to manually scale your app (service plan).
+- Can host many web apps on the same service plan. 10 free apps, 100 on Shared plan, and unlimited apps from basic onwards
+- Can deploy via FTP server, or head to deployment center when you can connect github, azure repos, bit bucket, local git, onedrive, dropbox, or external (mercurial etc) _NB: This changes based on the OS you choose. The above options are for windows app services. Linux container option only gives you Azure DevOps deployment option_.
+- Deployment slots enable staging/testing/prod slots, that you can wrap permissions around to determine who/what can deploy to them
+### Containers
+- No free plan for linux dev environments
+- Container settings can be changed e.g. point at a new container registry/repo
+- Azure k8s is obviously for fully fledged microservices apps. But can run single containers here if you like. 
+### Webjobs as background jobs
+- _What happens if you have part of your web app that needs to run by someone hitting a URL on you app?_ Traditionally would have installed it as a windows service (windows), set it up as a cron job (linux), or some other way to have the code run. Introducing _webjobs_ (in the settings of an app), an easy way to run scripts as background processes, and runs in the same context as your web app so you have a way of uploading code into azure, and setting that to run however you wish. 
+- you upload the file into the app (bit odd..), then select the trigger (schedule?) with a CRON expression, or as a continuous service, and save the job. Lots of filetypes are supported. _NB: Webapps can time out after 20 mins without activity, which would stop your webjob. So need to either disable timeout or ensure you have enough traffic hitting your site/app to ensure this code would run_.
+
+## k8s
+- Nothing exceptional or different about provisioning a cluster for k8s, as one would expect. You can attach monitoring, but I'm guessing this is for the k8s cluster not the containers.
+- `az aks get-credentials --resource-group $rg --name $clustername` gives cloud shell the context for the cluster.
+- `kubectl get nodes` to view nodes in cluster. Deploy app using `yaml` file, which defines where the containers that make up the application come from. No code in the yaml.
+- `kubectl apply -f $app.yaml` will push the deployment of the service to the cluster. 
+- `kubectl get service` shows you the status of the deployment once running. If one of the instance of a service requires a public IP, can take a moment to deploy this and have it provisioned. 
+- Don't get a lot of insights into the cluster from the service page. Have to launch k8s dashboard, which runs on the azure cli.
+### k8s dashboard
+- Need to install az cli. `az aks install-cli`
+- `az login` to login
+- `az aks get-credentials` command to provide context to az for your k8s cluster
+- `az aks browse` will fire up the k8s dashboard.
+
+### docker
+- Docker compose file looks like the k8s yaml, I'm guessing docker compose is an orchestration engine like k8s? it is! just a way to run multi-container apps locally. {"question": "docker compose vs k8s? does anyone use docker compose for local development?"}
+- `docker-compose up` to run your app
+
+## TODO - Implementing Secure Data Solutions
+### Intro to data security
+
+
+## Develop for the cloud
+### Message-based integration architecture
+- Lots of message-based solutions in Azure
+- _SendGrid_ is an e-mail delivery service - a rest API that your applications can use to send or recieve emails.
+	- Scalable, so can use it for sending lots of messages.
+	- Third party.
+	- Can process incoming mail, too. So programs can monitor an e-mail address, connect to SMTP to read the emails and do your processing based on the contents of those.
+	- _Requires a SendGrid account_
+- _Event Grid_ allows you to connect lots of event sources in azure to other services. e.g. new files in blob account or new message on service bus queue can trigger any kind of program (logic apps, azure functions, web hooks, etc)
+- _Azure Relay Service_ allows messages to be passed from internet, through your firewall to your internal network. 
+	- Enable Azure Relay, which gives you an endpoint. You then install an application inside your network on a server, which establishes the communication between the inside of your network and az. 
+	- Legacy way is using  (WCF) services.
+	- Good thing about Azure Relay is you dont have to make changes to your firewall settings.
+	- Does outbound connections too, so messages can pass from azure to your internal network over a channel that was initiated as an outbound communication.
+	- Two types of connections: 
+		- _Hybrid connections_ are based on BizTalk services, using standard web sockets and multi-platform support
+		- _Windows Communication Framework (WCF) relays_ are the legacy offering, only supporting HTTP comms with limited platform support. Microsoft .NET .. maybe proprietary.
+- _Notification Hub_ send messages to mobile applications. Very flexible as you can push messages to all devices, or make rules based on users OS/version/user/location/personalized messages. Enables back end services to communicate with apps (and therefore users).
+- _Event Hub_ - things produce events. Rather than having things call your applications and services directly, you can have Event Hub accept and store those events, saving you having to worry about scaling and the load, then recievers can take those events and act on them. 
+	- Messages can flow in order
+	- Can deal with millions of messages
+	- Messages can be partitioned
+- _Service Bus_ support two different delivery guarantees (at least once, at most once (so different than storage queues))
+- _Microsoft Graph API_ for interacting with Office 365. Can send/recieve e-mails via Outlook. 
+Messaging is used to develop highly available and responsive apps. It allows you to disconnect the load that the front end application is receiving from the load that the rest of the app needs to deal with, which means with a thin front end you can scale relatively inexpensively. 
+
+### Develop for Autoscaling
+- Application resources can grow to meet demand, and shrink when the demand is no longer there - really leveraging the flexibility provided by cloud. 
+- There are recommended patterns:
+	- On and off - e.g. a job that fires every four hours, so that server should be turned off when it's not running.
+	- Adding resources - typically when an organisation or application is in a state of growth, only concerned with being able to add new servers. CPU many no be the measure. 
+	- Unpredictable autoscaling - monitoring CPU or memory usage or some other metric that tells you your servers are under heavy load and adding more resources. Azure allows you to expose a metric via Application Insights, and then based your scaling from what your application is reporting. 
+	- Predictable autoscaling - my application is typically used by these people, so via schedule (clock), can scale resources accordingly.
