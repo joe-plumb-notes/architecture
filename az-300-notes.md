@@ -28,14 +28,14 @@ My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70
 
 ### Monitoring Azure VMs
 - Select for VM > Diagnostics (Left hand side)
-- Guest-level monitoring must be turned on in order to access these stats outside of the VM.
+- *Guest-level monitoring must be turned on in order to access these stats outside of the VM.*
 - Performance counters enable you to configure what data and the frequency by which this data is sent back to Azure.
 - Can access graphs here, pin them to your dashboard for ease of access upon login, and export this data to Excel if required.
 
 ### VM Scale Sets (VMSS)
 - Allow you to create virtual machines that are scalable, from 1-1000 VMs in a set. 
 - Determine instance count i.e. number of VMs, and the instance size. 
-- Can set up auto-scaling, with auto-scaling rules. e.g. when CPU in the scale set goes above a threshold, provision another VM (up to the max number of machines). 
+- *Can set up auto-scaling*, with auto-scaling rules. e.g. when CPU in the scale set goes above a threshold, provision another VM (up to the max number of machines). 
 - Will also need to be load balanced, with either an *Application Gateway* or a *Load Balancer* service. 
 	- Application Gateway supports HTTP/HTTPS/WebSocket traffic, perhaps routing traffic based on the URL contents of the request (e.g. one server serving images, one serving video), and rules defining this distribution.
 	- Load balancer is not sophisticated, does not inspect the traffic. You choose the public IP, Domain name label, virtual network, etc.. 
@@ -44,7 +44,7 @@ My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70
 - Azure Resource Manager (ARM) - used to organise and deploy resources in Azure. (Used to be ASM, don't do this any more.)
 - If you look at a resource group, you can see each deployment has a set of details, marking the changes that were made. Each one of these includes a template and parameters files (JSON).  
 - These can be downloaded, along with deployment scripts for CLI, Powershell, Ruby, and C#
-- Template holds the 'labels', and parameters holds the 'values' (kind of)
+- _Template_ holds the 'labels', and _parameters_ holds the 'values' (kind of)
 	- The values in the parameters are those that were decided through the dialog by the user.
 	- "resources" section in the template is where you'll do the most of the hands-on work with the ARM template.
 - Good practice to access the ARM template once you have deployed some service or done some work to read through and understand how your GUI actions have been captured and coded.
@@ -110,7 +110,7 @@ My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70
 
 ### Storage Explorer
 - Open a storage instance in portal, and can access from the blade. Also native app available for download.
-- {"question": "blob containers vs file storage vs queues"}
+- {"question": "blob containers vs file storage vs queues vs data lake storage"}
 - Different types of blob storage:
 	- block blob - files such as image/video that are designed to be read as complete files
 	- page blob - akin to virtual HDD where individual pages of the blob can be accessed (good for batch processing perhaps?)
@@ -119,10 +119,10 @@ My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70
 ### Log Analytics
 - Storage interacts with and makes actions available in Log Analytics. 
 - `AzureActivity where ResourceGroup == "rg"`
-- Every time the keys are accessed via the portal, this is logged. These kinds of logging and any actions will be based off the 'Azure Activity log' - the 'Storage Account logs' are to access other logging outputs (e.g. IIS, events, Syslog, ETW logs, service fabric events) within Log Analytics
+- Every time the keys are accessed via the portal, *this is logged*. These kinds of logging and any actions will be based off the 'Azure Activity log' - the 'Storage Account logs' are to access other logging outputs (e.g. IIS, events, Syslog, ETW logs, service fabric events) within Log Analytics
 
 ### Redundancy
-- When provisioning and within the configuration, you can select locally-redundant storage (3 copies of your data within the data center - essentially backed up. Cheapest. 11 9's availability(!). If the datacenter goes down, then won't be able to access your data. Zone redundant storage (Powershell/CLI) would protect against that), geo-redundant storage (data stored in multiple geos. 16 9's. ), and read-access geo-redundant storage (RA-GRS replicates your data to another data center in a secondary region, and also provides you with the option to read from the secondary region. With RA-GRS, you can read from the secondary region regardless of whether Microsoft initiates a failover from the primary to secondary region. ). Can also provision zone redundant storage via CLI/PowerShell
+- When provisioning and within the configuration, you can select locally-redundant storage (3 copies of your data within the data center - essentially backed up. Cheapest. 11 9's availability(!). If the datacenter goes down, then won't be able to access your data. Zone redundant storage (Powershell/CLI) would protect against that), geo-redundant storage (data stored in multiple geos. 16 9's. ), and read-access geo-redundant storage (RA-GRS replicates your data to another data center in a secondary region, and also *provides you with the option to read from the secondary region*. With RA-GRS, you can read from the secondary region regardless of whether Microsoft initiates a failover from the primary to secondary region. ). Can also provision zone redundant storage via CLI/PowerShell
 - Pay for the bandwidth of upgrading your storage/landing data and replicating it across the network. 
 - More info: https://docs.microsoft.com/en-us/azure/storage/common/storage-redundancy-grs
 
@@ -210,7 +210,7 @@ Offload account management to Azure AD, and integrate into your apps using the S
 - _Recovery Services vaults_ is the service to look at here - this is a DR (Disaster Recovery) tool. If you've a set of VMs running on prem, in Azure, or elsewhere, you can use Site Recovery to have a replicated version of your app, multiple VMs, and your data ready to go, in case a disaster happens. 
 - If your app were to go down on prem, you can initiate a failover which would deploy your app into a region in Azure, boot it up, and be ready. _This is a manual fail over_, but if it's looking like you're going to breach SLA or giving up hope of a quick fix, this could provide a solution. 
 - This can also be used for migration - replicating on-premises VMs and then triggering the failover would deploy the app to Azure, which you could then use as your primary instance of the application moving forwards. 
-- For DR scenarios you want the vault to exist in a different data center (obviously!), else if that DC with your application in it goes down, then you lose the valut as well.
+- For DR scenarios you want the vault to exist in a different data center (obviously!), else if that DC with your application in it goes down, then you lose the vault as well.
 
 ### Preparing an ASR site
 - This can be used for backups, storing VMs in the protected items area. SQL in Azure VM, Azure Storage, and Azure VMs currently supported (among others)
@@ -226,11 +226,11 @@ Offload account management to Azure AD, and integrate into your apps using the S
 
 ### Functions
 - Functions count as serverless if you configure them this way. Also LogicApps and service fabric. 
-	- Deploying Function app, you get to choose the hosting plan. If you choose consumption, this is true serverless. App Service hosting is PaaS. 
+	- Deploying Function app, you get to choose the hosting plan. *If you choose consumption, this is true serverless*. App Service hosting is PaaS. 
 	- You can sign your own custom domain and have a function app respond to this
 	- Pricing is very cheap - 400,000 GB-s execution time and 1 million executions for free - so great for pieces of code that are not run frequently as you end up staying on the free tier.
 	- Windows or Linux - a Linux Function app allows you to deploy a container as your function.
-- Functions need a storage account, for the code, logs, etc.
+- *Functions need a storage account, for the code, logs, etc*.
 - Portal interface to author, and lots of predefined templates (HTTP trigger, Timers, Azure Queue Storage Trigger, Blob Storage Trigger (whenever a new file gets added to storage, log it in a database for example), IoT Hub)
 - Can also integrate a function with other services, e.g. Excel table, CosmosDB, OneDrive, Blob, Table Storage, 
 
@@ -361,9 +361,73 @@ Offload account management to Azure AD, and integrate into your apps using the S
 - Docker compose file looks like the k8s yaml, I'm guessing docker compose is an orchestration engine like k8s? it is! just a way to run multi-container apps locally. {"question": "docker compose vs k8s? does anyone use docker compose for local development?"}
 - `docker-compose up` to run your app
 
-## TODO - Implementing Secure Data Solutions
+## Implementing Secure Data Solutions
 ### Intro to data security
+- Clearly lots of benefits to using the cloud - pay for what you use, easy to scale to larger data solutions without having to purchase hardware and undergo effort for scaling, easy to replicate data around the globe, access can be granted to any app if authorized, and lots of features like tuning and optimization done for you.
+- Despite this - security is still very much a factor. Don't forget it!
+- There are risks of unauthorized data access, data loss, or undetectable data modification.
+- Lots of security solutions:
+	- Firewalls that require whitelist IP
+	- Virtual network service endpoints
+	- Services can be deployed on non-public networks so anything that's accessible to a virtual network can remain not-public.
+	- Encryption at rest and in transit
+	- Store and use access keys and certificates securely (KeyStore)
+	- Create special identities for your applications and virtual machines so they are running in a very restricted profile
 
+### Data Storage Encryption
+- Azure offers different database options `["SQL Server in a VM", "Azure SQL Database", "SQL Data Warehouse", "Azure Database for MySQL", "Azure Database for PostgreSQL", "Cosmos DB"]`, with different ways of encrypting stored data. 
+- _Transparent Data Encryption_ (TDE) means the data is stored to the physical disk in an encrypted state, but when you read and write data using supported databases `[Azure SQL Database", "SQL Data Warehouse"]` you are not dealing with encryption (it's transparent!) Azure manages the keys on our behalf. 
+- The `master` database is not encrypted (you get this whe  you provision the db service, along with user and temp dbs). This is where information around the encryption is stored.
+- TDE is on by default, and can be turned off, but you should know what you're doing and why you want to switch this off.
+- BYOK (Bring your own Key) is supported by TDE. When you create your database Microsoft will generate a pulic/private key pair for you and manage the encryption. To use your own key and CA, generate it and store it in a KeyVault, and grant vault access to the SQL DB using its unique AAD identity. The server will then use it's AAD identity to authenticate with AAD for access to the Key Vault, then send get, wrap key, and unwrap key requests to the asymmetric key in Key Vault for db encryption key protection. [More](https://docs.microsoft.com/en-us/azure/sql-database/transparent-data-encryption-byok-azure-sql)
+- TDE supports:
+	- Geo-restore (replicate a db from one geo to another) and geo-replication
+	- Self-service point-in-time restores, copying a database, and restoring a database.
+- TDE does _not_ support:
+	- Database export (the data is not encrypted, stored in unencrypted BACPAC files, if you do export), it's like a `zip` format with extra metadata.'
+- Azure Storate Encryption (SSE, Storage Service Encryption) is enbaled by default for new accounts, cannot be disabled.
+	- Anything will be encrypted when stored on physical storage, so if you were storing the BACPAC files, these would be encrypted (not the files, but the storage account would be).
+	- Support BYOK for unmanaged disk. Managed disk is encrypted by Microsoft and they manage the keys.
+
+### Azure Key Vault
+- Center of a lot of the security solutions, as this is where secrets and certs are to be stored. 
+- Can protect user id's and passwords that an application might need to access external services, access keys for APIs, certificates themselves, any other encryption keys. 
+- Follows FIPS (Federal Information Processing Standard 140-2 Level 2)
+- Key Vault is used to centeralize your secrets. So instead of having a web config or application config file which contains all passwords and API secret keys etc, you can store these in an place where very very few people can access. 
+- Key Vault can monitor access and use of secrets, produce log files to analyse and understand when secrets were accessed, which is a more secure way of operating. 
+- Key Vault should be part of your solutions when developing large-scale solutions within Azure, to simplify management - don't need connection string everywhere in your application code with the database password, just point the application to Key Vault and manage it centrally via _Key Vault access Request_. App goes through AAD for authentication, via managed service identities. The application authenticating with AD gives it access to the secrets in the key vault. 
+
+### Storing ARM template secrets
+- When your ARM template needs to use passwords and secrets. 
+- ARM templates = JSON (declarative), i.e. plaintext
+- How do you do it?
+	- Store the password in the key vault as a secret 
+	- set type to 'securestring' in template:
+	```
+	...
+	},
+	"adminPassword: {"type": "securestring"
+	  }, 
+	...
+	```
+	- within parameters file, set the password to a reference to your az key vault. All secrets have a unique identifier.
+	- the account that runs this code is able to access the secrets.
+
+### Storing application secrets
+- Same issue, don't want to embed secrets in your code. 
+- Keyvault can store Keys and Secrets
+- Secrets are whatever you want them to be (text, 25KB maximum)
+- If secret is so big, can consider encrypting it before you pass into the keyvault. 
+- Key vault keeps versions of each secret, and each version can be accessed by a URL: `https://{keyvault-name}.vault.azure.net/{object-type}/{object-name}/{object-version}`
+- When uploading to key vault, set the name and value, can also set expiry and not before dates, whether or not it is enabled, then it will store alongside the date it was created and last updated. 
+- MS does not stop you reading a secret after it has expired or before it's ready to be released (expiry date and not before date are for info for your app.)
+	- store the key separate from the app, so app doesn't have to be re-deployed, can just modify keyvault to give applications access as the keys change. 
+	- applications can be limited in what secrets they can access in the vault, and can list the secrets it has been given access to (can help with development).
+
+### Storing Certificate secrets
+- Certificates aka x509 certificates. 
+- Key vault can interact directly with some CAs - if you set it up to work with a CA, it can create keys itself, and renew those keys automatically.
+- You can also have someone manage this, being the person in the loop between the key vault and the CA (i.e. a not supported one).
 
 ## Develop for the cloud
 ### Message-based integration architecture
