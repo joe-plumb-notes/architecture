@@ -1,5 +1,5 @@
 # AZ-300 notes
-My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70534-azure
+My notes in preparation for AZ-300 exam, while studying https://www.udemy.com/70534-azure. This resource also helpfully links out to MS Docs to help with additional reading: https://pixelrobots.co.uk/2018/09/study-resources-for-the-az-300/
 
 ## Azure Geos and Regions (re-cap)
 - Regions are broken into sevaral data centers - Azure doesn't give you the choice of the exact data center you want to deploy to, it will handle this for us. Each region has a pair for highest speed connections and HA/redundancy. e.g. East US is paired with West US. Lowest latency.
