@@ -125,6 +125,8 @@
 - broker failure and leader election typically takes in the region of 6-10 seconds, so need to allow for this. 
 - `max.inflight.requests.per.connection` enables you to issue parallel requests (request pipelining) to a broker. Can break ordering guarantees. So, if sensitive, set this to 1, or use an idempotent producer (more later). 
 - Batch of messages succeeds or fails atomically (all succeed or all fail). Don't have a massive batch size because if (when) it fails, creates lot of overhead.
+- Use `min.insync.replicas` with `acks=all` to increase the durability further. Requires a certain number of in sync replicas in order for produce operation to succeed. Trade off between availability and durability. 2 is a good number. This is a topic config property. 
+
 #### `send()` and Callbacks
 - `send(record, null)` is preferred. The second parameter is an implementation of a `Callback` interface with an `onCompletion` method, that will be called by the sender thread when the ack comes back from the broker. 
 
@@ -172,3 +174,56 @@ producer.send(record, (recordMetadata, e) -> {
 - `poll()` and `fetch()` are different and it's not always 1 for 1. Internal fetching process may collect next events before you call `poll()` so it's already there for the application rather than waiting to go to the broker again.
 - Prevent resource leaks by closing the consumer in a `finally` block.
 
+### Message Size & Durability
+#### Message size limit
+- Recommended to keep max message size at 1MB - Kafka was designed with smaller messages in mind so changing this will likely require deeper performance tuning throughout the cluster. If thinking about bigger messages, use claim-check pattern, or split bigger pieces into smaller ones with the same key, and assemble at the other end. 
+- Gloablly with `message.max.bytes` and per topic with `max.message.bytes`
+
+#### Replication factor
+- Topics can be replicated for durability. Specify when created (e.g. with `kafka-topics` cli), or modified (e.g. with `kafka-reassign-partitions`)
+- Default is 1 *total* copy, not 1+1 replica. _This means no replication!_
+
+#### Timeouts
+- `request.timeout.ms` is the max time the producer will wait for a response. Will resend when timeout hit. 
+    - retries defaults to `MAX_INT` and is only relevant if `acks!=0`
+- `max.block.ms` is how long `send()` maximally blocks the sender if internal sender buffers are full. 
+    - After this timeout, `TimeoutException` will be thrown.
+    - It's a bit of back pressure.
+- `delivery.timeout.ms` is a combination of time spent in request buffer, being sent (inflight time) and all retries, so sets total time for ack from the broker once buffered. Defaults to 120 seconds. Can retry, but if you pass this, the batch will timeout and an error will propogate back to your application.
+
+### Exactly Once Semantics (EOS)
+- By default, you have at-least once delivery guarantees. 
+- Producer and Consumer Java clients, Kafka Streams API, and Confluent KSQL support EOS.
+- https://www.confluent.io/blog/exactly-once-semantics-are-possible-heres-how-apache-kafka-does-it/
+- To implement (128):
+    - use idempotent producers `enable.idempotence=true`
+    - write atomically across multiple partitions
+    ```
+    producer.initTransactions();
+    try {
+        producer.beginTransaction();
+        producer.send(record1);
+        producer.send(record2);
+        producer.sendOffsetsToTransaction(...)
+        producer.commitTransaction();
+    } catch(ProducerFencedException e) {
+        producer.close();
+    } catch(KafkaException e) {
+        producer.abortTransaction();
+    }
+    ```
+    - Fence off open transactions with `transactional.id`
+
+### Specifying Offsets
+- Use to control where the consumer begins to consume events from in the subscribed topic partitions.
+- `auto.offset.reset` determins when the offset should be reset, and applies when consumer group starts for first time, or, if there are already offsets (i.e. in a reboot scenario), when the consumer offset is less than the smallest offset or when the consumer offset is greater than the last offset.
+- There are explicit controls to manage where you are currently in consumption, e.g. to get and change the offset for the consumer.
+- This is useful for DR processes - you might be replicating messages to second active cluster in different region with mirror maker, but you can't just point your consumer groups at the secondary cluster as the offset numbers are not consistent when topics are replicated using these tools (Mirror Maker / Confluent Replicator). 
+
+### Consumer Liveiness
+- Start up a consumer in the group (dictated by the `groupId`), it joins the group by registering with the group co-ordinator (a nominated broker in the cluster), and then heartbeats to signal liveness. This heartbeating mechanism is used to known which consumers are active, and if things change (if consumers leave, fail, join)
+- `session.timeout.ms` and `heartbeat.interval.ms` are config properties to manage this
+
+
+### Kafka Connect
+- Standard way to copy data from and to systems using Kafka. Only to copy, and to do this well. Aim is to work out of the box, without many changes. 
